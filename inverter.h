@@ -58,7 +58,9 @@ public slots:
 private:
     static const unsigned char GET_INVERTER[];
     static const unsigned char GET_DETAIL[];
-    static const unsigned char GET_DATA[];
+    static const unsigned char GET_DATA1[];
+    static const unsigned char GET_DATA2[];
+    static const unsigned char GET_DATA3[];
 
     const QString m_serial;
     QTcpServer * m_server;

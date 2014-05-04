@@ -10,27 +10,31 @@ const unsigned char Inverter::GET_INVERTER[] = {0x55, 0xAA, 0x00, 0x40, 0x02, 0x
 
 // messages sent from server to inverter
 const unsigned char Inverter::GET_DETAIL[] = {0x55, 0xAA, 0x01, 0x03, 0x02, 0x00, 0x00, 0x01, 0x05};
-const unsigned char Inverter::GET_DATA  [] = {0x55, 0xAA, 0x01, 0x00, 0x02, 0x00, 0x00, 0x01, 0x02};
+const unsigned char Inverter::GET_DATA1 [] = {0x55, 0xAA, 0x01, 0x00, 0x02, 0x00, 0x00, 0x01, 0x02};
+const unsigned char Inverter::GET_DATA2 [] = {0x55, 0xAA, 0x01, 0x09, 0x02, 0x00, 0x00, 0x01, 0x0B};
+const unsigned char Inverter::GET_DATA3 [] = {0x55, 0xAA, 0x01, 0x02, 0x02, 0x00, 0x00, 0x01, 0x04};
 
 Inverter::Inverter()
 {
     // setup our tcp server
     m_server = new QTcpServer(this);
+    m_udpsocket = new QUdpSocket(this);
 
     connect(m_server, SIGNAL(newConnection()),this, SLOT(newClient()));
     m_server->listen(QHostAddress::Any, 1200);
 
     connect(&m_connectTimer, SIGNAL(timeout()), this, SLOT(doConnect()));
     m_connectTimer.start(2000);
+
 }
 Inverter::~Inverter()
 {
+    m_socket->close();
+
 }
 
 void Inverter::doConnect()
 {
-    m_udpsocket = new QUdpSocket(this);
-
     // go get some inverters
     m_udpsocket->writeDatagram((const char *)GET_INVERTER, 20, QHostAddress::Broadcast, 1300);
 }
@@ -46,7 +50,6 @@ void Inverter::newClient()
         m_socket->setReadBufferSize(1024);
 
         connect(m_socket, SIGNAL(disconnected()),this, SLOT(disconnected()));
-        //connect(m_socket, SIGNAL(bytesWritten(qint64)),this, SLOT(bytesWritten(qint64)));
         connect(m_socket, SIGNAL(readyRead()),this, SLOT(readyRead()));
 
         connect(&m_dataTimer, SIGNAL(timeout()), this, SLOT(doData()));
@@ -57,14 +60,37 @@ void Inverter::newClient()
 
 void Inverter::doData()
 {
-    m_socket->write((const char*)GET_DETAIL, 9);
+    static int cycle = 0;
+
+    switch (cycle)
+    {
+    case 0:
+        m_socket->write((const char*)GET_DETAIL, 9);
+        break;
+
+    case 1:
+        m_socket->write((const char*)GET_DATA1, 9);
+        break;
+
+    case 2:
+        m_socket->write((const char*)GET_DATA2, 9);
+        break;
+
+    case 3:
+        m_socket->write((const char*)GET_DATA3, 9);
+        break;
+
+    default:
+        m_socket->write((const char*)GET_DETAIL, 9);
+        break;
+    }
+
+    cycle = (cycle + 1) % 4;
 }
 
 void Inverter::disconnected()
 {
     qDebug() << "TCP disconnected...";
-    // restart our inverter search
-    m_connectTimer.start(2000);
 }
 
 void Inverter::readyRead()
@@ -72,5 +98,17 @@ void Inverter::readyRead()
     qDebug() << "\r\nTCP reading...";
 
     // read the data from the socket
-    qDebug() << m_socket->readAll();
+    QByteArray data = m_socket->readAll();
+
+    if (data.length())
+    {
+        // check what message is being returned
+        if (data[2] == 0x01 && data[3] == 0x83)
+        {
+            // response to general detail msg
+            qDebug() << "model" << data[9];
+        }
+        else
+            qDebug() << data[9];
+    }
 }
