@@ -119,7 +119,7 @@ void Inverter::readyRead()
         }
         else
         {
-           dataMsg dataMsgPtr;
+            dataMsg dataMsgPtr;
 
             dataMsgPtr.temperature = ((short)outData[ 7] << 8 & 0xff00) | (outData[ 8] & 0x00ff);
             dataMsgPtr.panel1V     = ((short)outData[ 9] << 8 & 0xff00) | (outData[10] & 0x00ff);
