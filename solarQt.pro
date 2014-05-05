@@ -5,18 +5,22 @@
 #-------------------------------------------------
 
 QT       += core network
-
 QT       -= gui
 
 TARGET = solarQt
+
+OBJECTS_DIR =./obj
+DESTDIR = ./bin
+
 CONFIG   += console
 CONFIG   -= app_bundle
 
 TEMPLATE = app
 
+INCLUDE_PATH += ./include
 
-SOURCES += main.cpp \
-    inverter.cpp
+SOURCES += src/main.cpp \
+    src/inverter.cpp
 
 HEADERS += \
-    inverter.h
+    src/inverter.h
