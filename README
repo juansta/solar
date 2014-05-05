@@ -1,4 +1,15 @@
 Solar Samil
 
+This software is used to poll smail solar inverters for its display data. It will eventually have the capability to upload to pvoutput.org (using libcurl)
+
+Talking to the inverter is accomplished in two steps -
+1. Send broadcast message for inverters to connect to a TCP server.
+2. Setup a TCP to accept incoming connections.
+3. Ask inverter for serial number
+4. Ask inverter for display data
+5. Repeat 4 as required
+
+NOTE -
+This was reverse engineered from WireShark traffic. SO not all network messages are captured, simply data display messages have been found. If you want to change settings etc, you're better of using Samil software...
 
 
