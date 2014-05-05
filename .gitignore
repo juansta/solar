@@ -1,1 +1,5 @@
+Makefile
 *.pro.user
+
+/bin
+/obj
