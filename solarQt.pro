@@ -23,4 +23,4 @@ SOURCES += src/main.cpp \
     src/inverter.cpp
 
 HEADERS += \
-    src/inverter.h
+    include/inverter.h
