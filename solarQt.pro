@@ -10,6 +10,7 @@ QT       -= gui
 TARGET = solarQt
 
 OBJECTS_DIR =./obj
+MOC_DIR = ./obj
 DESTDIR = ./bin
 
 CONFIG   += console
@@ -17,7 +18,7 @@ CONFIG   -= app_bundle
 
 TEMPLATE = app
 
-INCLUDE_PATH += ./include
+INCLUDEPATH += include
 
 SOURCES += src/main.cpp \
     src/inverter.cpp
