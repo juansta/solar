@@ -98,7 +98,7 @@ typedef struct
     float panel1V;
     float panel1I;
     float panel1P;
-    
+
     float gridI;
     float gridV;
     float gridF;
@@ -153,19 +153,30 @@ void Inverter::readyRead()
 
             // "today" energy
             dataMsgPtr.energy     = (float)(((short)outData[23] << 8 & 0xff00) | (outData[24] & 0x00ff)) / 100.0f;
-
+#if 0
             qDebug() << "temperature" << QString::number(dataMsgPtr.temperature, 'f', 2);
 
-            qDebug() << "Panel V" << QString::number(dataMsgPtr.panel1V, 'f', 2) 
+            qDebug() << "Panel V" << QString::number(dataMsgPtr.panel1V, 'f', 2)
                      << "Panel I" << QString::number(dataMsgPtr.panel1I, 'f', 2)
                      << "Panel P" << QString::number(dataMsgPtr.panel1P, 'f', 2);
 
-            qDebug() << "Grid  V" << QString::number(dataMsgPtr.gridV, 'f', 2)     
-                     << "Grid  I" << QString::number(dataMsgPtr.gridI, 'f', 2)   
-		             << "Grid  P" << QString::number(dataMsgPtr.gridP, 'f', 2);
+            qDebug() << "Grid  V" << QString::number(dataMsgPtr.gridV, 'f', 2)
+                     << "Grid  I" << QString::number(dataMsgPtr.gridI, 'f', 2)
+                     << "Grid  P" << QString::number(dataMsgPtr.gridP, 'f', 2);
 
             qDebug() << "Consuming P" << QString::number(dataMsgPtr.panel1P - dataMsgPtr.gridP, 'f', 2);
             qDebug() << "Energy Today" << QString::number(dataMsgPtr.energy, 'f', 2);
+#endif
+            qDebug() << QDateTime::date() << ","
+                     << QDateTime::time() << ","
+                     << dataMsgPtr.temperature << ","
+                     << dataMsgPtr.panel1V << ","
+                     << dataMsgPtr.panel1I << ","
+                     << dataMsgPtr.panel1P << ","
+                     << dataMsgPtr.gridV << ","
+                     << dataMsgPtr.gridI << ","
+                     << dataMsgPtr.gridP << ","
+                     << dataMsgPtr.energy;
         }
     }
 }
