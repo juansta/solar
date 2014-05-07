@@ -77,13 +77,8 @@ private:
     static const int MSG_DATA3 = 3;
     static const int MSG_TOTAL = 4;
 
-    static const unsigned char GET_INVERTER[];
-    static const unsigned char GET_DETAIL[];
-    static const unsigned char GET_DATA1[];
-    static const unsigned char GET_DATA2[];
-    static const unsigned char GET_DATA3[];
     static const unsigned char MSGS[MSG_TOTAL][9];
-
+    static const unsigned char GET_INVERTER[];
     const QString m_serial;
     QTcpServer * m_server;
     QTcpSocket * m_socket;

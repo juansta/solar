@@ -24,18 +24,12 @@ const unsigned char Inverter::GET_INVERTER[] = {0x55, 0xAA, 0x00, 0x40, 0x02, 0x
 
 // inverters then connect to our running server - which is this code
 
-// messages sent from server to inverter
-const unsigned char Inverter::GET_DETAIL[] = {0x55, 0xAA, 0x01, 0x03, 0x02, 0x00, 0x00, 0x01, 0x05};
-const unsigned char Inverter::GET_DATA1 [] = {0x55, 0xAA, 0x01, 0x00, 0x02, 0x00, 0x00, 0x01, 0x02};
-const unsigned char Inverter::GET_DATA2 [] = {0x55, 0xAA, 0x01, 0x09, 0x02, 0x00, 0x00, 0x01, 0x0B};
-const unsigned char Inverter::GET_DATA3 [] = {0x55, 0xAA, 0x01, 0x02, 0x02, 0x00, 0x00, 0x01, 0x04};
-
 const unsigned char Inverter::MSGS[Inverter::MSG_TOTAL][9] =
 {
-    {0x55, 0xAA, 0x01, 0x03, 0x02, 0x00, 0x00, 0x01, 0x05},
+    {0x55, 0xAA, 0x01, 0x03, 0x02, 0x00, 0x00, 0x01, 0x05}, // about inverter
     {0x55, 0xAA, 0x01, 0x00, 0x02, 0x00, 0x00, 0x01, 0x02},
     {0x55, 0xAA, 0x01, 0x09, 0x02, 0x00, 0x00, 0x01, 0x0B},
-    {0x55, 0xAA, 0x01, 0x02, 0x02, 0x00, 0x00, 0x01, 0x04},
+    {0x55, 0xAA, 0x01, 0x02, 0x02, 0x00, 0x00, 0x01, 0x04}, // data message
 };
 
 Inverter::Inverter()
@@ -66,7 +60,7 @@ void Inverter::doConnect()
 void Inverter::newClient()
 {
     qDebug() << "new inverter connected";
-    m_connectTimer.stop();
+    // m_connectTimer.stop();
     m_socket = m_server->nextPendingConnection();
 
     if (m_socket)
@@ -99,17 +93,20 @@ void Inverter::disconnected()
 }
 typedef struct
 {
-    short temperature;
-    short panel1V;
-    short panel1I;
-    short panel1P;
-    int   workHrs;
-    short energy;
-    short gridI;
-    short gridV;
-    short gridF;
-    short outputP;
-    int   energyTotal;
+    float temperature;
+
+    float panel1V;
+    float panel1I;
+    float panel1P;
+    
+    float gridI;
+    float gridV;
+    float gridF;
+    float gridP;
+
+    float energy;
+    float outputP;
+    float energyTotal;
 } dataMsg;
 
 void Inverter::readyRead()
@@ -135,6 +132,7 @@ void Inverter::readyRead()
         else
         {
             dataMsg dataMsgPtr;
+<<<<<<< HEAD
 
             printf("\r\n");
             for (int i = 0; i < data.length(); i++)
@@ -165,6 +163,42 @@ void Inverter::readyRead()
 
             qDebug() << "Energy Today" << (float)dataMsgPtr.energy / 100.0f;
 
+=======
+#if 0
+            printf("\r\n");
+            for (int i = 0; i < data.length(); i++)
+                printf("%02X, ", outData[i]);
+            printf("\r\n");
+#endif
+            // inverter temperature
+            dataMsgPtr.temperature = (float)(((short)outData[ 7] << 8 & 0xff00) | (outData[ 8] & 0x00ff)) / 10.0f;
+            // PV array outputs
+            dataMsgPtr.panel1V     = (float)(((short)outData[ 9] << 8 & 0xff00) | (outData[10] & 0x00ff)) / 10.0f;
+            dataMsgPtr.panel1I     = (float)(((short)outData[13] << 8 & 0xff00) | (outData[14] & 0x00ff)) / 10.0f;
+            dataMsgPtr.panel1P     = dataMsgPtr.panel1V * dataMsgPtr.panel1I;
+
+            // grid supply stats
+            dataMsgPtr.gridI     = (float)(((short)outData[49] << 8 & 0xff00) | (outData[50] & 0x00ff)) / 10.0f;
+            dataMsgPtr.gridV     = (float)(((short)outData[51] << 8 & 0xff00) | (outData[52] & 0x00ff)) / 10.0f;
+            dataMsgPtr.gridF     = (float)(((short)outData[53] << 8 & 0xff00) | (outData[54] & 0x00ff));
+            dataMsgPtr.gridP     = (float)(((short)outData[55] << 8 & 0xff00) | (outData[56] & 0x00ff));
+
+            // "today" energy
+            dataMsgPtr.energy     = (float)(((short)outData[23] << 8 & 0xff00) | (outData[24] & 0x00ff)) / 100.0f;
+
+            qDebug() << "temperature" << QString::number(dataMsgPtr.temperature, 'f', 2);
+
+            qDebug() << "Panel V" << QString::number(dataMsgPtr.panel1V, 'f', 2) 
+                     << "Panel I" << QString::number(dataMsgPtr.panel1I, 'f', 2)
+                     << "Panel P" << QString::number(dataMsgPtr.panel1P, 'f', 2);
+
+            qDebug() << "Grid  V" << QString::number(dataMsgPtr.gridV, 'f', 2)     
+                     << "Grid  I" << QString::number(dataMsgPtr.gridI, 'f', 2)   
+		             << "Grid  P" << QString::number(dataMsgPtr.gridP, 'f', 2);
+
+            qDebug() << "Consuming P" << QString::number(dataMsgPtr.panel1P - dataMsgPtr.gridP, 'f', 2);
+            qDebug() << "Energy Today" << QString::number(dataMsgPtr.energy, 'f', 2);
+>>>>>>> 8cdc1f970dbcd115015008868c3f2fb9d604bce3
         }
     }
 }
