@@ -132,38 +132,6 @@ void Inverter::readyRead()
         else
         {
             dataMsg dataMsgPtr;
-<<<<<<< HEAD
-
-            printf("\r\n");
-            for (int i = 0; i < data.length(); i++)
-                printf("%02X, ", outData[i]);
-
-            printf("\r\n");
-
-            dataMsgPtr.temperature = ((short)outData[ 7] << 8 & 0xff00) | (outData[ 8] & 0x00ff);
-            dataMsgPtr.panel1V     = ((short)outData[ 9] << 8 & 0xff00) | (outData[10] & 0x00ff);
-            dataMsgPtr.panel1I     = ((short)outData[13] << 8 & 0xff00) | (outData[14] & 0x00ff);
-            dataMsgPtr.panel1P     = ((short)outData[17] << 8 & 0xff00) | (outData[18] & 0x00ff);
-
-            dataMsgPtr.gridI     = ((short)outData[49] << 8 & 0xff00) | (outData[50] & 0x00ff);
-            dataMsgPtr.gridV     = ((short)outData[51] << 8 & 0xff00) | (outData[52] & 0x00ff);
-            dataMsgPtr.gridF     = ((short)outData[53] << 8 & 0xff00) | (outData[54] & 0x00ff);
-
-            dataMsgPtr.energy     = ((short)outData[23] << 8 & 0xff00) | (outData[24] & 0x00ff);
-
-            qDebug() << "temperature" << (float)dataMsgPtr.temperature / 10.0f;
-
-            qDebug() << "Panel V" << (float)dataMsgPtr.panel1V / 10.0f;
-            qDebug() << "Panel I" << (float)dataMsgPtr.panel1I / 10.0f;
-            qDebug() << "Panel P" << (float)dataMsgPtr.panel1P / 10.0f;
-
-            qDebug() << "Grid I" << (float)dataMsgPtr.gridI / 10.0f;
-            qDebug() << "Grid V" << (float)dataMsgPtr.gridV / 10.0f;
-            qDebug() << "Grid F" << (float)dataMsgPtr.gridF / 100.0f;
-
-            qDebug() << "Energy Today" << (float)dataMsgPtr.energy / 100.0f;
-
-=======
 #if 0
             printf("\r\n");
             for (int i = 0; i < data.length(); i++)
@@ -198,7 +166,6 @@ void Inverter::readyRead()
 
             qDebug() << "Consuming P" << QString::number(dataMsgPtr.panel1P - dataMsgPtr.gridP, 'f', 2);
             qDebug() << "Energy Today" << QString::number(dataMsgPtr.energy, 'f', 2);
->>>>>>> 8cdc1f970dbcd115015008868c3f2fb9d604bce3
         }
     }
 }
