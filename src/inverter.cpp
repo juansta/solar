@@ -123,7 +123,7 @@ void Inverter::readyRead()
     {
         const char * outData = data.data();
         // check what message is being returned
-        if (data[2] == 0x01 && data[3] == 0x83)
+        if (data[2] == '0x01' && data[3] == '0x83')
         {
             // response to general detail msg
             qDebug() << "version"  << &outData[10];
@@ -135,6 +135,12 @@ void Inverter::readyRead()
         else
         {
             dataMsg dataMsgPtr;
+
+            printf("\r\n");
+            for (int i = 0; i < data.length(); i++)
+                printf("%02X, ", outData[i]);
+
+            printf("\r\n");
 
             dataMsgPtr.temperature = ((short)outData[ 7] << 8 & 0xff00) | (outData[ 8] & 0x00ff);
             dataMsgPtr.panel1V     = ((short)outData[ 9] << 8 & 0xff00) | (outData[10] & 0x00ff);
