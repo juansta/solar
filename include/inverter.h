@@ -30,7 +30,7 @@ class Inverter
     Q_OBJECT
 
 public:
-    Inverter();
+    Inverter(bool output = false);
     ~Inverter();
 
 public:
@@ -63,7 +63,7 @@ public:
     } ;
 
 signals:
-    void newData(dataMsg data);
+    void newData(Inverter::dataMsg data);
 
 public slots:
     // timer function used to find inverters using UDP broadcast messages
@@ -84,8 +84,8 @@ private:
     static const int TCP_PORT         = 1200;
     static const int UDP_PORT         = 1300;
 
-    static const int CONNECTION_TIME  = 2000;
-    static const int DATA_TIME        = 5000;
+    static const int CONNECTION_TIME  = 5000;
+    static const int DATA_TIME        = 1000;
 
     static const int READ_BUFFER_SIZE = 1024;
 
@@ -95,6 +95,9 @@ private:
 
     static const unsigned char MSGS[MSG_TOTAL][9];
     static const unsigned char GET_INVERTER[];
+
+    const bool m_stdout;
+    int m_cycle;
     const QString m_serial;
     QTcpServer * m_server;
     QTcpSocket * m_socket;

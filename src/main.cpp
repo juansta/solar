@@ -14,14 +14,38 @@
  */
 
 #include <QCoreApplication>
+#include <QSettings>
+#include <stats.h>
 #include <inverter.h>
+
+Q_DECLARE_METATYPE(Inverter::dataMsg)
+
 
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
-    Inverter inv;
+    QCoreApplication::setApplicationName("SolarSamil");
+    QCoreApplication::setApplicationVersion("1.0");
 
-    inv.doConnect();
+    qRegisterMetaType<Inverter::dataMsg>();
 
-    return a.exec();
+    QSettings settings("config.ini", QSettings::IniFormat);
+
+    QString id   = settings.value("System Id").toString();
+    QString key  = settings.value("API Key")  .toString();
+    int     rate = settings.value("Rate")     .toInt();
+
+    if (id.length() && key.length())
+    {
+        Inverter inv;
+        Stats    stats(id, key, rate);
+
+        QObject::connect(&inv, SIGNAL(newData(Inverter::dataMsg)), &stats, SLOT(doNewData(Inverter::dataMsg)));
+
+        inv.doConnect();
+
+        return a.exec();
+    }
+
+    return 1;
 }

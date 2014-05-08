@@ -21,7 +21,11 @@ TEMPLATE = app
 INCLUDEPATH += include
 
 SOURCES += src/main.cpp \
-    src/inverter.cpp
+    src/inverter.cpp\
+    src/stats.cpp
 
 HEADERS += \
-    include/inverter.h
+    include/inverter.h \
+    include/stats.h
+
+LIBS += -L/usr/lib -lcurl

@@ -31,7 +31,8 @@ const unsigned char Inverter::MSGS[Inverter::MSG_TOTAL][9] =
     {0x55, 0xAA, 0x01, 0x02, 0x02, 0x00, 0x00, 0x01, 0x04}, // data message
 };
 
-Inverter::Inverter()
+Inverter::Inverter(bool output)
+    : m_stdout(output), m_cycle(MSG_DETAIL)
 {
     // set up our UDP socket
     // this is used to find all inverters on the LAN
@@ -94,11 +95,7 @@ void Inverter::doData()
 {
     // cycle ensures that we first send out a message to ask for general inverter detail
     // once we have called this once, all subsequent messages ask for detail data
-    static int cycle = MSG_DETAIL;
-
-    m_socket->write((const char*)MSGS[cycle], 9);
-
-    cycle = MSG_DATA;
+    m_socket->write((const char*)MSGS[m_cycle], 9);
 }
 
 void Inverter::disconnected()
@@ -120,6 +117,8 @@ void Inverter::readyRead()
         // check what message is being returned
         if (data[2] == 0x01 && data[3] == 0x83)
         {
+            m_cycle = MSG_DATA;
+
             // response to general detail msg
             qDebug() << "version"  << &outData[10];
             qDebug() << "model"    << &outData[25];
@@ -128,7 +127,8 @@ void Inverter::readyRead()
             qDebug() << "software" << &outData[67];
 
             // print out some nice CSV headings to std::out
-            std::cout << "Date,Time,Temperature,Panel V, Panel I, Panel P, Grid V, Grid I, Grid P, Energy" << std::endl;
+            if (m_stdout)
+                std::cout << "Date,Time,Temperature,Panel V, Panel I, Panel P, Grid V, Grid I, Grid P, Energy" << std::endl;
         }
         else
         {
@@ -154,9 +154,15 @@ void Inverter::readyRead()
             dataMsgPtr.gridP     = (float)(((short)outData[55] << 8 & 0xff00) | (outData[56] & 0x00ff));
 
             // "today" energy
-            dataMsgPtr.energy     = (float)(((short)outData[23] << 8 & 0xff00) | (outData[24] & 0x00ff)) / 100.0f;
+            // 21, 22, 23, 24
+            dataMsgPtr.energy    = (float)(
+                        ((int)(outData[21]) << 24 & 0xff000000) |
+                        ((int)(outData[22]) << 16 & 0x00ff0000) |
+                        ((int)(outData[23]) << 8  & 0x0000ff00) |
+                        ((int)(outData[24]) << 0  & 0x000000ff)) / 10.0f;
 
-            std::cout << dataMsgPtr.timeStamp.date().toString("yyyy/MM/dd").toStdString() << ","
+            if (m_stdout)
+                std::cout << dataMsgPtr.timeStamp.date().toString("yyyy/MM/dd").toStdString() << ","
                       << dataMsgPtr.timeStamp.time().toString("HH:mm:ss").toStdString() << ","
                       << dataMsgPtr.temperature << ","
                       << dataMsgPtr.panel1V << ","
@@ -166,7 +172,9 @@ void Inverter::readyRead()
                       << dataMsgPtr.gridI << ","
                       << dataMsgPtr.gridP << ","
                       << dataMsgPtr.energy << std::endl;
-            qDebug()  << dataMsgPtr.timeStamp.time().toString ("HH:mm:ss");
+
+            // let listeners know that new data has arrived
+            emit newData(dataMsgPtr);
         }
     }
 }
