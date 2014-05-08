@@ -93,8 +93,6 @@ void Stats::doNewData(Inverter::dataMsg data)
         {
             CURLcode res;
 
-            curl_easy_setopt(m_curl, CURLOPT_VERBOSE, 1L);
-
             // setup our request
             res = curl_easy_setopt(m_curl, CURLOPT_URL, post.toStdString().c_str());
             if (res != CURLE_OK)
