@@ -28,27 +28,34 @@ const unsigned char Inverter::GET_INVERTER[] = {0x55, 0xAA, 0x00, 0x40, 0x02, 0x
 const unsigned char Inverter::MSGS[Inverter::MSG_TOTAL][9] =
 {
     {0x55, 0xAA, 0x01, 0x03, 0x02, 0x00, 0x00, 0x01, 0x05}, // about inverter
-    {0x55, 0xAA, 0x01, 0x00, 0x02, 0x00, 0x00, 0x01, 0x02},
-    {0x55, 0xAA, 0x01, 0x09, 0x02, 0x00, 0x00, 0x01, 0x0B},
     {0x55, 0xAA, 0x01, 0x02, 0x02, 0x00, 0x00, 0x01, 0x04}, // data message
 };
 
 Inverter::Inverter()
 {
-    // setup our tcp server
-    m_server = new QTcpServer(this);
+    // set up our UDP socket
+    // this is used to find all inverters on the LAN
     m_udpsocket = new QUdpSocket(this);
 
-    connect(m_server, SIGNAL(newConnection()),this, SLOT(newClient()));
-    m_server->listen(QHostAddress::Any, 1200);
+    // setup our tcp server
+    // this is used to send control messages to any inverters that respond to UDP messages
+    m_server    = new QTcpServer(this);
 
+    // start the TCP server and listen on the standard samil port
+    connect(m_server, SIGNAL(newConnection()),this, SLOT(newClient()));
+    m_server->listen(QHostAddress::Any, TCP_PORT);
+
+    // start a new timer that will send out UDP discovery messages on timeout
     connect(&m_connectTimer, SIGNAL(timeout()), this, SLOT(doConnect()));
-    m_connectTimer.start(2000);
+    m_connectTimer.start(CONNECTION_TIME);
 
 }
 Inverter::~Inverter()
 {
     m_socket->close();
+
+    delete m_server;
+    delete m_udpsocket;
 
 }
 
@@ -56,7 +63,7 @@ void Inverter::doConnect()
 {
     // go get some inverters
     // this just sends out a multicast IAMSEVER and we wait for response
-    m_udpsocket->writeDatagram((const char *)GET_INVERTER, 20, QHostAddress::Broadcast, 1300);
+    m_udpsocket->writeDatagram((const char *)GET_INVERTER, 20, QHostAddress::Broadcast, UDP_PORT);
 }
 
 void Inverter::newClient()
@@ -69,58 +76,44 @@ void Inverter::newClient()
     if (m_socket)
     {
         // set up socket and signals for asynchronouse connection
-        // start a timer that will ask the inverter for its front screen 
+        // start a timer that will ask the inverter for its front screen
         // display
-        m_socket->setReadBufferSize(1024);
+        m_socket->setReadBufferSize(READ_BUFFER_SIZE);
 
+        // general socket signals
         connect(m_socket, SIGNAL(disconnected()),this, SLOT(disconnected()));
         connect(m_socket, SIGNAL(readyRead()),this, SLOT(readyRead()));
 
+        // start a timer to poll the inverter for current stats
         connect(&m_dataTimer, SIGNAL(timeout()), this, SLOT(doData()));
-
-        m_dataTimer.start(2000);
+        m_dataTimer.start(DATA_TIME);
     }
 }
 
 void Inverter::doData()
 {
-    static int cycle = 0;
+    // cycle ensures that we first send out a message to ask for general inverter detail
+    // once we have called this once, all subsequent messages ask for detail data
+    static int cycle = MSG_DETAIL;
 
     m_socket->write((const char*)MSGS[cycle], 9);
 
-    //cycle = (cycle + 1) % MSG_TOTAL;
-    cycle = 3;
+    cycle = MSG_DATA;
 }
 
 void Inverter::disconnected()
 {
+    // we have been disconnected, try and reconnect
     qDebug() << "TCP disconnected...";
-    m_connectTimer.start(5000);
+    m_connectTimer.start(CONNECTION_TIME);
 }
-typedef struct
-{
-    float temperature;
-
-    float panel1V;
-    float panel1I;
-    float panel1P;
-
-    float gridI;
-    float gridV;
-    float gridF;
-    float gridP;
-
-    float energy;
-    float outputP;
-    float energyTotal;
-} dataMsg;
 
 void Inverter::readyRead()
 {
-
     // read the data from the socket
     QByteArray data = m_socket->readAll();
 
+    // if we have actually read some data
     if (data.length())
     {
         const char * outData = data.data();
@@ -134,19 +127,21 @@ void Inverter::readyRead()
             qDebug() << "serial"   << &outData[51];
             qDebug() << "software" << &outData[67];
 
+            // print out some nice CSV headings to std::out
             std::cout << "Date,Time,Temperature,Panel V, Panel I, Panel P, Grid V, Grid I, Grid P, Energy" << std::endl;
         }
         else
         {
             dataMsg dataMsgPtr;
-#if 0
-            printf("\r\n");
-            for (int i = 0; i < data.length(); i++)
-                printf("%02X, ", outData[i]);
-            printf("\r\n");
-#endif
-            // inverter temperature
+
+            // The values that the inverter sends us only relate to -
+            //      1 - the power being generated from the PV array
+            //      2 - the power being exported to the grid
+            // There is no way to get consumtion data from these.
+
+            // heat sink temperature
             dataMsgPtr.temperature = (float)(((short)outData[ 7] << 8 & 0xff00) | (outData[ 8] & 0x00ff)) / 10.0f;
+
             // PV array outputs
             dataMsgPtr.panel1V     = (float)(((short)outData[ 9] << 8 & 0xff00) | (outData[10] & 0x00ff)) / 10.0f;
             dataMsgPtr.panel1I     = (float)(((short)outData[13] << 8 & 0xff00) | (outData[14] & 0x00ff)) / 10.0f;
@@ -160,32 +155,18 @@ void Inverter::readyRead()
 
             // "today" energy
             dataMsgPtr.energy     = (float)(((short)outData[23] << 8 & 0xff00) | (outData[24] & 0x00ff)) / 100.0f;
-#if 0
-            qDebug() << "temperature" << QString::number(dataMsgPtr.temperature, 'f', 2);
 
-            qDebug() << "Panel V" << QString::number(dataMsgPtr.panel1V, 'f', 2)
-                     << "Panel I" << QString::number(dataMsgPtr.panel1I, 'f', 2)
-                     << "Panel P" << QString::number(dataMsgPtr.panel1P, 'f', 2);
-
-            qDebug() << "Grid  V" << QString::number(dataMsgPtr.gridV, 'f', 2)
-                     << "Grid  I" << QString::number(dataMsgPtr.gridI, 'f', 2)
-                     << "Grid  P" << QString::number(dataMsgPtr.gridP, 'f', 2);
-
-            qDebug() << "Consuming P" << QString::number(dataMsgPtr.panel1P - dataMsgPtr.gridP, 'f', 2);
-            qDebug() << "Energy Today" << QString::number(dataMsgPtr.energy, 'f', 2);
-#endif
-            QDateTime now;
-            std::cout <<     now.currentDateTime().date().toString("yyyy/MM/dd").toStdString() << ","
-                     << now.currentDateTime().time().toString("HH:mm:ss").toStdString() << ","
-                     << dataMsgPtr.temperature << ","
-                     << dataMsgPtr.panel1V << ","
-                     << dataMsgPtr.panel1I << ","
-                     << dataMsgPtr.panel1P << ","
-                     << dataMsgPtr.gridV << ","
-                     << dataMsgPtr.gridI << ","
-                     << dataMsgPtr.gridP << ","
-                     << dataMsgPtr.energy << std::endl;
-            qDebug() << now.currentDateTime().time().toString ("HH:mm:ss");
+            std::cout << dataMsgPtr.timeStamp.date().toString("yyyy/MM/dd").toStdString() << ","
+                      << dataMsgPtr.timeStamp.time().toString("HH:mm:ss").toStdString() << ","
+                      << dataMsgPtr.temperature << ","
+                      << dataMsgPtr.panel1V << ","
+                      << dataMsgPtr.panel1I << ","
+                      << dataMsgPtr.panel1P << ","
+                      << dataMsgPtr.gridV << ","
+                      << dataMsgPtr.gridI << ","
+                      << dataMsgPtr.gridP << ","
+                      << dataMsgPtr.energy << std::endl;
+            qDebug()  << dataMsgPtr.timeStamp.time().toString ("HH:mm:ss");
         }
     }
 }

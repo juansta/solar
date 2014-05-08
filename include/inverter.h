@@ -3,12 +3,12 @@
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
- * 
+ *
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -34,26 +34,36 @@ public:
     ~Inverter();
 
 public:
-    class Data
+    class dataMsg
     {
-        QDateTime time;
+    public:
+        dataMsg()
+            : timeStamp(QDateTime::currentDateTime())
+        {}
 
-        float   temperature;
+        // result time stamp
+        QDateTime timeStamp;
 
-        float accPower;
-        float outPower;
+        // internal heat sink temperature
+        float temperature;
 
-        float   acVolt   ;
-        float   acCurrent;
-        float   acPower  ;
+        // PV array data
+        float panel1V;
+        float panel1I;
+        float panel1P;
 
-        float   pvVolt   [3];
-        float   pvCurrent[3];
-        float   pvPower  [3];
-    };
+        // grid output data
+        float gridI;
+        float gridV;
+        float gridF;
+        float gridP;
+
+        // energy generated - today only
+        float energy;
+    } ;
 
 signals:
-    void newData(QString serial, Data data);
+    void newData(dataMsg data);
 
 public slots:
     // timer function used to find inverters using UDP broadcast messages
@@ -71,11 +81,17 @@ public slots:
     void readyRead();
 
 private:
+    static const int TCP_PORT         = 1200;
+    static const int UDP_PORT         = 1300;
+
+    static const int CONNECTION_TIME  = 2000;
+    static const int DATA_TIME        = 5000;
+
+    static const int READ_BUFFER_SIZE = 1024;
+
     static const int MSG_DETAIL = 0;
-    static const int MSG_DATA1 = 1;
-    static const int MSG_DATA2 = 2;
-    static const int MSG_DATA3 = 3;
-    static const int MSG_TOTAL = 4;
+    static const int MSG_DATA   = 1;
+    static const int MSG_TOTAL  = 2;
 
     static const unsigned char MSGS[MSG_TOTAL][9];
     static const unsigned char GET_INVERTER[];
