@@ -44,18 +44,25 @@ Stats::Stats(QString sysId, QString apiKey, int intervalLength)
 
     // setup our HTTP headers
     // these never change between subsequent calls
+    //m_chunk = curl_slist_append(m_chunk, "Transfer-Encoding: chunked");
+    //m_chunk = curl_slist_append(m_chunk, "Expect: 100-continue");
+
     QString temp;
-    temp.append("X-Pvoutput-Apikey: " + apiKey);
+    temp.append("X-Pvoutput-Apikey:" + apiKey);
     m_chunk = curl_slist_append(m_chunk, temp.toStdString().c_str());
+
     temp.clear();
-    temp.append("X-Pvoutput-SystemId: " + sysId);
+    temp.append("X-Pvoutput-SystemId:" + sysId);
     m_chunk = curl_slist_append(m_chunk, temp.toStdString().c_str());
 }
 
 Stats::~Stats()
 {
+    curl_slist_free_all(m_chunk);
+
     // clean up our curl instance
     curl_global_cleanup();
+
 }
 
 void Stats::doNewData(Inverter::dataMsg data)
@@ -71,7 +78,7 @@ void Stats::doNewData(Inverter::dataMsg data)
     {
         QString post;
 
-        post.append("d="   + m_nextInterval.date().toString("yyyyMMdd")
+        post.append("http://pvoutput.org/service/r2/addstatus.jsp?d="   + m_nextInterval.date().toString("yyyyMMdd")
                   + "&t="  + m_nextInterval.time().toString("HH:mm")
                   + "&v1=" + QString::number(m_energy, 'f', 0)
                   + "&v2=" + QString::number(m_gridP, 'f', 0)
@@ -86,25 +93,27 @@ void Stats::doNewData(Inverter::dataMsg data)
         {
             CURLcode res;
 
+            curl_easy_setopt(m_curl, CURLOPT_VERBOSE, 1L);
+
             // setup our request
-            res = curl_easy_setopt(m_curl, CURLOPT_URL, "http://pvoutput.org/service/r2/addstatus.jsp");
+            res = curl_easy_setopt(m_curl, CURLOPT_URL, post.toStdString().c_str());
             if (res != CURLE_OK)
                 std::cerr << "curl_easy_setopt(CURLOPT_URL) failed: " << curl_easy_strerror(res) << std::endl;
-
-            res = curl_easy_setopt(m_curl, CURLOPT_HTTPHEADER, m_chunk);
-            if (res != CURLE_OK)
-                std::cerr << "curl_easy_setopt(CURLOPT_HTTPHEADER) failed: " << curl_easy_strerror(res) << std::endl;
-
-            res = curl_easy_setopt(m_curl, CURLOPT_POSTFIELDS, post.toStdString().c_str());
-            if (res != CURLE_OK)
-                std::cerr << "curl_easy_setopt(CURLOPT_POSTFIELDS) failed: " << curl_easy_strerror(res) << std::endl;
-
-            // perform the actual request
-            res = curl_easy_perform(m_curl);
-            if (res != CURLE_OK)
-                std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
             else
-                std::cout << "Updated pvoutput" << curl_easy_strerror(res) << std::endl;
+            {
+                res = curl_easy_setopt(m_curl, CURLOPT_HTTPHEADER, m_chunk);
+                if (res != CURLE_OK)
+                    std::cerr << "curl_easy_setopt(CURLOPT_HTTPHEADER) failed: " << curl_easy_strerror(res) << std::endl;
+                else
+                {
+                    // perform the actual request
+                    res = curl_easy_perform(m_curl);
+                    if (res != CURLE_OK)
+                        std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
+                    else
+                        std::cout << "Updated pvoutput" << curl_easy_strerror(res) << std::endl;
+                }
+            }
 
             curl_easy_cleanup(m_curl);
             m_curl = NULL;
@@ -114,3 +123,4 @@ void Stats::doNewData(Inverter::dataMsg data)
         m_nextInterval = m_nextInterval.addSecs(m_intervalLen);
     }
 }
+
