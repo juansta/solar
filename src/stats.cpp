@@ -26,7 +26,8 @@ Stats::Stats(QString sysId, QString apiKey, int intervalLength)
       m_intervalLen (intervalLength * 60),
       m_nextInterval(QDateTime::currentDateTime()),
       m_curl        (NULL),
-      m_chunk       (NULL)
+      m_chunk       (NULL),
+      m_intervalSet (true)
 {
     // setup a new interval time
     int msecAlarm = m_intervalLen * 1000;
@@ -74,6 +75,22 @@ void Stats::doNewData(Inverter::dataMsg data)
     m_temperature  = m_temperature  * ALPHA + data.temperature   * BETA;
 
     // check to see if we need to upload to pvoutput
+    if (!m_intervalSet)
+    {
+        // setup a new interval time
+        int msecAlarm = m_intervalLen * 1000;
+
+        // get the number of milli-seconds to our next roll over
+        qint64 msec   = m_nextInterval.currentMSecsSinceEpoch();
+        qint64 offset = msecAlarm - ((msec + msecAlarm) % msecAlarm);
+
+        // add the offset
+        msec += offset;
+        m_nextInterval.setMSecsSinceEpoch(msec);
+
+        m_intervalSet = true;
+    }
+
     if ((m_intervalLen > 0) && (data.timeStamp > m_nextInterval))
     {
         QString post;
@@ -109,7 +126,7 @@ void Stats::doNewData(Inverter::dataMsg data)
                     if (res != CURLE_OK)
                         std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
                     else
-                        std::cout << "Updated pvoutput" << curl_easy_strerror(res) << std::endl;
+                        std::cout << curl_easy_strerror(res) << std::endl;
                 }
             }
 
@@ -121,4 +138,12 @@ void Stats::doNewData(Inverter::dataMsg data)
         m_nextInterval = m_nextInterval.addSecs(m_intervalLen);
     }
 }
+void Stats::doNewDay()
+{
+    m_energy = 0.0f;
+    m_arrayV = 0.0f;
+    m_gridP  = 0.0f;
+    m_temperature  = 0.0f;
 
+    m_intervalSet = false;
+}

@@ -64,7 +64,7 @@ public:
 
 signals:
     void newData(Inverter::dataMsg data);
-
+    void newDay();
 public slots:
     // timer function used to find inverters using UDP broadcast messages
     void doConnect();
