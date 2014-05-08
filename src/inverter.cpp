@@ -13,6 +13,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <iostream>
 #include "inverter.h"
 #include <QDebug>
 #include <stdio.h>
@@ -54,17 +55,22 @@ Inverter::~Inverter()
 void Inverter::doConnect()
 {
     // go get some inverters
+    // this just sends out a multicast IAMSEVER and we wait for response
     m_udpsocket->writeDatagram((const char *)GET_INVERTER, 20, QHostAddress::Broadcast, 1300);
 }
 
 void Inverter::newClient()
 {
-    qDebug() << "new inverter connected";
-    // m_connectTimer.stop();
+    // an inverter has responded
+    // add this to our main socket
+    // note that this currently only handes one inverter
     m_socket = m_server->nextPendingConnection();
 
     if (m_socket)
     {
+        // set up socket and signals for asynchronouse connection
+        // start a timer that will ask the inverter for its front screen 
+        // display
         m_socket->setReadBufferSize(1024);
 
         connect(m_socket, SIGNAL(disconnected()),this, SLOT(disconnected()));
@@ -111,7 +117,6 @@ typedef struct
 
 void Inverter::readyRead()
 {
-    qDebug() << "\r\nTCP reading...";
 
     // read the data from the socket
     QByteArray data = m_socket->readAll();
@@ -120,7 +125,7 @@ void Inverter::readyRead()
     {
         const char * outData = data.data();
         // check what message is being returned
-        if (data[2] == '0x01' && data[3] == '0x83')
+        if (data[2] == 0x01 && data[3] == 0x83)
         {
             // response to general detail msg
             qDebug() << "version"  << &outData[10];
@@ -128,6 +133,8 @@ void Inverter::readyRead()
             qDebug() << "desc"     << &outData[35];
             qDebug() << "serial"   << &outData[51];
             qDebug() << "software" << &outData[67];
+
+            std::cout << "Date,Time,Temperature,Panel V, Panel I, Panel P, Grid V, Grid I, Grid P, Energy" << std::endl;
         }
         else
         {
@@ -167,8 +174,9 @@ void Inverter::readyRead()
             qDebug() << "Consuming P" << QString::number(dataMsgPtr.panel1P - dataMsgPtr.gridP, 'f', 2);
             qDebug() << "Energy Today" << QString::number(dataMsgPtr.energy, 'f', 2);
 #endif
-            qDebug() << QDateTime::date() << ","
-                     << QDateTime::time() << ","
+            QDateTime now;
+            std::cout <<     now.currentDateTime().date().toString("yyyy/MM/dd").toStdString() << ","
+                     << now.currentDateTime().time().toString("HH:mm:ss").toStdString() << ","
                      << dataMsgPtr.temperature << ","
                      << dataMsgPtr.panel1V << ","
                      << dataMsgPtr.panel1I << ","
@@ -176,7 +184,8 @@ void Inverter::readyRead()
                      << dataMsgPtr.gridV << ","
                      << dataMsgPtr.gridI << ","
                      << dataMsgPtr.gridP << ","
-                     << dataMsgPtr.energy;
+                     << dataMsgPtr.energy << std::endl;
+            qDebug() << now.currentDateTime().time().toString ("HH:mm:ss");
         }
     }
 }
