@@ -156,10 +156,8 @@ void Inverter::readyRead()
             // "today" energy
             // 21, 22, 23, 24
             dataMsgPtr.energy    = (float)(
-                        ((int)(outData[21]) << 24 & 0xff000000) |
-                        ((int)(outData[22]) << 16 & 0x00ff0000) |
                         ((int)(outData[23]) << 8  & 0x0000ff00) |
-                        ((int)(outData[24]) << 0  & 0x000000ff)) / 10.0f;
+                        ((int)(outData[24]) << 0  & 0x000000ff)) * 10.0f;
 
             if (m_stdout)
                 std::cout << dataMsgPtr.timeStamp.date().toString("yyyy/MM/dd").toStdString() << ","
