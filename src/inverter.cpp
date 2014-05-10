@@ -181,7 +181,6 @@ void Inverter::readyRead()
                 // so we need to reset any running averages
                 emit newDay();
             }
-
         }
     }
 }
