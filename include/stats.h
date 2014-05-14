@@ -40,6 +40,9 @@ public slots:
     // timer function used to find inverters using UDP broadcast messages
     void doNewData(Inverter::dataMsg data);
 
+    // slot used to reset all running counters
+    void doNewDay();
+
 private:
     // exponential averaging coefficients
     // this smooths out the incoming 1 second data
@@ -61,6 +64,8 @@ private:
     CURL * m_curl;
     // custom http headers
     struct curl_slist * m_chunk;
+
+    bool m_intervalSet;
 };
 
 #endif // INVERTER_H

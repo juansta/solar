@@ -154,7 +154,6 @@ void Inverter::readyRead()
             dataMsgPtr.gridP     = (float)(((short)outData[55] << 8 & 0xff00) | (outData[56] & 0x00ff));
 
             // "today" energy
-            // 21, 22, 23, 24
             dataMsgPtr.energy    = (float)(
                         ((int)(outData[23]) << 8  & 0x0000ff00) |
                         ((int)(outData[24]) << 0  & 0x000000ff)) * 10.0f;
@@ -171,8 +170,17 @@ void Inverter::readyRead()
                       << dataMsgPtr.gridP << ","
                       << dataMsgPtr.energy << std::endl;
 
+            // if we have a valid voltage value
             // let listeners know that new data has arrived
-            emit newData(dataMsgPtr);
+            // if not, slow down our data rate
+            if (dataMsgPtr.panel1V > 0.0f)
+                emit newData(dataMsgPtr);
+            else
+            {
+                // we're not outputing any values
+                // so we need to reset any running averages
+                emit newDay();
+            }
         }
     }
 }
