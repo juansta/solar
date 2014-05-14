@@ -16,6 +16,7 @@
 #ifndef STATS_H
 #define STATS_H
 
+#include <QVector>
 #include <curl/curl.h>
 #include "inverter.h"
 
@@ -50,6 +51,9 @@ private:
     float     m_gridP;       // W supplied to grid
     float     m_temperature; // inverter temperature
 
+    // message buffer
+    QVector<QString> m_queue;
+    
     const int m_intervalLen;
     QDateTime m_nextInterval;
 

@@ -64,13 +64,53 @@ Stats::~Stats()
     curl_global_cleanup();
 
 }
+void Stats::flush()
+{
+    // get a curl handle
+    m_curl = curl_easy_init();
+    if (m_curl)
+    {
+        QVector<QString>::iterator iter;
+        // flush out any stored values
+        for (iter = m_queue.begin(); iter != m_queue.end; iter++)
+        {
+            CURLcode res;
 
+            // setup our request
+            res = curl_easy_setopt(m_curl, CURLOPT_URL, iter->toStdString().c_str());
+            if (res != CURLE_OK)
+                std::cerr << "curl_easy_setopt(CURLOPT_URL) failed: " << curl_easy_strerror(res) << std::endl;
+            else
+            {
+                res = curl_easy_setopt(m_curl, CURLOPT_HTTPHEADER, m_chunk);
+                if (res != CURLE_OK)
+                    std::cerr << "curl_easy_setopt(CURLOPT_HTTPHEADER) failed: " << curl_easy_strerror(res) << std::endl;
+                else
+                {
+                    // perform the actual request
+                    res = curl_easy_perform(m_curl);
+                    if (res != CURLE_OK)
+                        std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
+                    else
+                        std::cout << curl_easy_strerror(res) << std::endl;
+                }
+            }
+        }
+    }
+
+    curl_easy_cleanup(m_curl);
+    m_curl = NULL;
+}
 void Stats::doNewData(Inverter::dataMsg data)
 {
     // smooth out our instantaneous values
-    m_energy = m_energy * ALPHA + data.energy  * BETA;
-    m_arrayV = m_arrayV * ALPHA + data.panel1V * BETA;
-    m_gridP  = m_gridP  * ALPHA + data.gridP   * BETA;
+    if (data.energy > 0.0f && data.energy < 40000.0f)
+        m_energy = m_energy * ALPHA + data.energy  * BETA;
+    if (data.panel1V > 0.0f && data.panel1V < 500.0f)
+        m_arrayV = m_arrayV * ALPHA + data.panel1V * BETA;
+    if (data.gridP > 0.0f && data.gridP < 4000.0f)
+        m_gridP  = m_gridP  * ALPHA + data.gridP   * BETA;
+
     m_temperature  = m_temperature  * ALPHA + data.temperature   * BETA;
 
     // check to see if we need to upload to pvoutput
@@ -85,7 +125,10 @@ void Stats::doNewData(Inverter::dataMsg data)
                   + "&v5=" + QString::number(m_temperature, 'f', 1)
                   + "&v6=" + QString::number(m_arrayV, 'f', 1)
                  );
+        
+        m_queue.push_back(post);
 
+        flush();
         // get a curl handle
         m_curl = curl_easy_init();
 
