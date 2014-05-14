@@ -44,6 +44,8 @@ public slots:
     void doNewDay();
 
 private:
+    void flush();
+
     // exponential averaging coefficients
     // this smooths out the incoming 1 second data
     static const float ALPHA = 0.15f;
@@ -56,7 +58,7 @@ private:
 
     // message buffer
     QVector<QString> m_queue;
-    
+
     const int m_intervalLen;
     QDateTime m_nextInterval;
 

@@ -45,9 +45,6 @@ Stats::Stats(QString sysId, QString apiKey, int intervalLength)
 
     // setup our HTTP headers
     // these never change between subsequent calls
-    //m_chunk = curl_slist_append(m_chunk, "Transfer-Encoding: chunked");
-    //m_chunk = curl_slist_append(m_chunk, "Expect: 100-continue");
-
     QString temp;
     temp.append("X-Pvoutput-Apikey:" + apiKey);
     m_chunk = curl_slist_append(m_chunk, temp.toStdString().c_str());
@@ -71,9 +68,11 @@ void Stats::flush()
     m_curl = curl_easy_init();
     if (m_curl)
     {
-        QVector<QString>::iterator iter;
+        int fails = 0;
+
         // flush out any stored values
-        for (iter = m_queue.begin(); iter != m_queue.end; iter++)
+        for (QVector<QString>::iterator iter = m_queue.begin();
+             fails < 100 && iter != m_queue.end();)
         {
             CURLcode res;
 
@@ -93,9 +92,15 @@ void Stats::flush()
                     if (res != CURLE_OK)
                         std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
                     else
+                    {
+                        iter = m_queue.erase(iter);
                         std::cout << curl_easy_strerror(res) << std::endl;
+                    }
                 }
             }
+
+            if (res != CURLE_OK)
+                fails++;
         }
     }
 
@@ -142,40 +147,10 @@ void Stats::doNewData(Inverter::dataMsg data)
                   + "&v5=" + QString::number(m_temperature, 'f', 1)
                   + "&v6=" + QString::number(m_arrayV, 'f', 1)
                  );
-        
+
         m_queue.push_back(post);
 
         flush();
-        // get a curl handle
-        m_curl = curl_easy_init();
-
-        if (m_curl)
-        {
-            CURLcode res;
-
-            // setup our request
-            res = curl_easy_setopt(m_curl, CURLOPT_URL, post.toStdString().c_str());
-            if (res != CURLE_OK)
-                std::cerr << "curl_easy_setopt(CURLOPT_URL) failed: " << curl_easy_strerror(res) << std::endl;
-            else
-            {
-                res = curl_easy_setopt(m_curl, CURLOPT_HTTPHEADER, m_chunk);
-                if (res != CURLE_OK)
-                    std::cerr << "curl_easy_setopt(CURLOPT_HTTPHEADER) failed: " << curl_easy_strerror(res) << std::endl;
-                else
-                {
-                    // perform the actual request
-                    res = curl_easy_perform(m_curl);
-                    if (res != CURLE_OK)
-                        std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
-                    else
-                        std::cout << curl_easy_strerror(res) << std::endl;
-                }
-            }
-
-            curl_easy_cleanup(m_curl);
-            m_curl = NULL;
-        }
 
         // work out when our next interval is going to be
         m_nextInterval = m_nextInterval.addSecs(m_intervalLen);
