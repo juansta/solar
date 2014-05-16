@@ -173,7 +173,7 @@ void Inverter::readyRead()
             // if we have a valid voltage value
             // let listeners know that new data has arrived
             // if not, slow down our data rate
-            if (dataMsgPtr.panel1V > 0.0f)
+            if (outData[22] == 0x01)
                 emit newData(dataMsgPtr);
             else
             {
