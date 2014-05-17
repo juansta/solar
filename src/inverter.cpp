@@ -170,14 +170,14 @@ void Inverter::readyRead()
                       << dataMsgPtr.gridP << ","
                       << dataMsgPtr.energy << std::endl;
 
-            // only generate signal ]if we have a valid power output figure
-            if (dataMsgPtr.gridP > 0.0f)
-                emit newData(dataMsgPtr);
-            else
-            {
+            // check inverter operation mode
+            if (data[22] == 5 && dataMsgPtr.gridP == 0.0f)
                 // we're not outputing any values
                 // so we need to reset any running averages
                 emit newDay();
+            else
+            {
+                emit newData(dataMsgPtr);
             }
         }
     }

@@ -41,6 +41,7 @@ int main(int argc, char *argv[])
         Stats    stats(id, key, rate);
 
         QObject::connect(&inv, SIGNAL(newData(Inverter::dataMsg)), &stats, SLOT(doNewData(Inverter::dataMsg)));
+        QObject::connect(&inv, SIGNAL(newDay()), &stats, SLOT(doNewDay()));
 
         inv.doConnect();
 
