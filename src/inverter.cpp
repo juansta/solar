@@ -170,10 +170,8 @@ void Inverter::readyRead()
                       << dataMsgPtr.gridP << ","
                       << dataMsgPtr.energy << std::endl;
 
-            // if we have a valid voltage value
-            // let listeners know that new data has arrived
-            // if not, slow down our data rate
-            if (outData[22] == 0x01)
+            // only generate signal ]if we have a valid power output figure
+            if (dataMsgPtr.gridP > 0.0f)
                 emit newData(dataMsgPtr);
             else
             {
