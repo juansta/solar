@@ -171,7 +171,7 @@ void Inverter::readyRead()
                       << dataMsgPtr.energy << std::endl;
 
             // check inverter operation mode
-            if (data[22] == 5 && dataMsgPtr.gridP == 0.0f)
+            if (data[22] == 5 && dataMsgPtr.gridP <= 1.0f)
                 // we're not outputing any values
                 // so we need to reset any running averages
                 emit newDay();

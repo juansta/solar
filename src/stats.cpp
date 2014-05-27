@@ -110,11 +110,11 @@ void Stats::flush()
 void Stats::doNewData(Inverter::dataMsg data)
 {
     // smooth out our instantaneous values
-    if (data.energy > 0.0f && data.energy < 40000.0f)
+//    if (data.energy > 0.0f && data.energy < 40000.0f)
         m_energy = m_energy * ALPHA + data.energy  * BETA;
-    if (data.panel1V > 0.0f && data.panel1V < 500.0f)
+//    if (data.panel1V > 0.0f && data.panel1V < 500.0f)
         m_arrayV = m_arrayV * ALPHA + data.panel1V * BETA;
-    if (data.gridP > 0.0f && data.gridP < 4000.0f)
+//    if (data.gridP > 0.0f && data.gridP < 4000.0f)
         m_gridP  = m_gridP  * ALPHA + data.gridP   * BETA;
 
     m_temperature  = m_temperature  * ALPHA + data.temperature   * BETA;
