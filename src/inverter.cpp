@@ -88,6 +88,8 @@ void Inverter::newClient()
         // start a timer to poll the inverter for current stats
         connect(&m_dataTimer, SIGNAL(timeout()), this, SLOT(doData()));
         m_dataTimer.start(DATA_TIME);
+
+        m_connectTimer.stop();
     }
 }
 
@@ -171,7 +173,7 @@ void Inverter::readyRead()
                       << dataMsgPtr.energy << std::endl;
 
             // check inverter operation mode
-            if (data[22] == 5 && dataMsgPtr.gridP <= 1.0f)
+            if (data[22] == 5)
                 // we're not outputing any values
                 // so we need to reset any running averages
                 emit newDay();
