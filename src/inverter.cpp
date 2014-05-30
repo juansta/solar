@@ -174,9 +174,11 @@ void Inverter::readyRead()
 
             // check inverter operation mode
             if (data[22] == 5)
+            {
                 // we're not outputing any values
                 // so we need to reset any running averages
                 emit newDay();
+            }
             else
             {
                 emit newData(dataMsgPtr);

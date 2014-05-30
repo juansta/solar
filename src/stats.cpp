@@ -94,6 +94,7 @@ void Stats::flush()
                     else
                     {
                         iter = m_queue.erase(iter);
+                        std::cout << iter->toStdString().c_str() << std::endl;
                         std::cout << curl_easy_strerror(res) << std::endl;
                     }
                 }
@@ -159,6 +160,8 @@ void Stats::doNewData(Inverter::dataMsg data)
 }
 void Stats::doNewDay()
 {
+    std::cout << "New Day" << std::endl;
+
     m_energy = 0.0f;
     m_arrayV = 0.0f;
     m_gridP  = 0.0f;
