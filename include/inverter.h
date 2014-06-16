@@ -84,7 +84,7 @@ private:
     static const int TCP_PORT         = 1200;
     static const int UDP_PORT         = 1300;
 
-    static const int CONNECTION_TIME  = 5000;
+    static const int CONNECTION_TIME  = 1000;
     static const int DATA_TIME        = 1000;
 
     static const int READ_BUFFER_SIZE = 1024;
