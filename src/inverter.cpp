@@ -134,10 +134,10 @@ void Inverter::readyRead()
         else
         {
             short mode = data[22];
-            qDebug() << mode;
+
             // check inverter operation mode
             if (mode == 1)
-            { 
+            {
                 dataMsg dataMsgPtr;
 
                 // The values that the inverter sends us only relate to -
@@ -176,7 +176,7 @@ void Inverter::readyRead()
                         << dataMsgPtr.gridP << ","
                         << dataMsgPtr.energy << std::endl;
 
-            
+
                 emit newData(dataMsgPtr);
             }
             else
