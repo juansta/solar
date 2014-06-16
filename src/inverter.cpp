@@ -111,13 +111,12 @@ void Inverter::readyRead()
 {
     // read the data from the socket
     QByteArray data = m_socket->readAll();
-
     // if we have actually read some data
     if (data.length())
     {
         const char * outData = data.data();
         // check what message is being returned
-        if (data[2] == 0x01 && data[3] == 0x83)
+        if (data[2] == (char)0x01 && data[3] == (char)0x83)
         {
             m_cycle = MSG_DATA;
 
@@ -134,53 +133,54 @@ void Inverter::readyRead()
         }
         else
         {
-            dataMsg dataMsgPtr;
+            short mode = data[22];
+            qDebug() << mode;
+            // check inverter operation mode
+            if (mode == 1)
+            { 
+                dataMsg dataMsgPtr;
 
-            // The values that the inverter sends us only relate to -
-            //      1 - the power being generated from the PV array
-            //      2 - the power being exported to the grid
-            // There is no way to get consumtion data from these.
+                // The values that the inverter sends us only relate to -
+                //      1 - the power being generated from the PV array
+                //      2 - the power being exported to the grid
+                // There is no way to get consumtion data from these.
 
-            // heat sink temperature
-            dataMsgPtr.temperature = (float)(((short)outData[ 7] << 8 & 0xff00) | (outData[ 8] & 0x00ff)) / 10.0f;
+                // heat sink temperature
+                dataMsgPtr.temperature = (float)(((short)outData[ 7] << 8 & 0xff00) | (outData[ 8] & 0x00ff)) / 10.0f;
 
-            // PV array outputs
-            dataMsgPtr.panel1V     = (float)(((short)outData[ 9] << 8 & 0xff00) | (outData[10] & 0x00ff)) / 10.0f;
-            dataMsgPtr.panel1I     = (float)(((short)outData[13] << 8 & 0xff00) | (outData[14] & 0x00ff)) / 10.0f;
-            dataMsgPtr.panel1P     = dataMsgPtr.panel1V * dataMsgPtr.panel1I;
+                // PV array outputs
+                dataMsgPtr.panel1V     = (float)(((short)outData[ 9] << 8 & 0xff00) | (outData[10] & 0x00ff)) / 10.0f;
+                dataMsgPtr.panel1I     = (float)(((short)outData[13] << 8 & 0xff00) | (outData[14] & 0x00ff)) / 10.0f;
+                dataMsgPtr.panel1P     = dataMsgPtr.panel1V * dataMsgPtr.panel1I;
 
-            // grid supply stats
-            dataMsgPtr.gridI     = (float)(((short)outData[49] << 8 & 0xff00) | (outData[50] & 0x00ff)) / 10.0f;
-            dataMsgPtr.gridV     = (float)(((short)outData[51] << 8 & 0xff00) | (outData[52] & 0x00ff)) / 10.0f;
-            dataMsgPtr.gridF     = (float)(((short)outData[53] << 8 & 0xff00) | (outData[54] & 0x00ff));
-            dataMsgPtr.gridP     = (float)(((short)outData[55] << 8 & 0xff00) | (outData[56] & 0x00ff));
+                // grid supply stats
+                dataMsgPtr.gridI     = (float)(((short)outData[49] << 8 & 0xff00) | (outData[50] & 0x00ff)) / 10.0f;
+                dataMsgPtr.gridV     = (float)(((short)outData[51] << 8 & 0xff00) | (outData[52] & 0x00ff)) / 10.0f;
+                dataMsgPtr.gridF     = (float)(((short)outData[53] << 8 & 0xff00) | (outData[54] & 0x00ff));
+                dataMsgPtr.gridP     = (float)(((short)outData[55] << 8 & 0xff00) | (outData[56] & 0x00ff));
 
-            // "today" energy
-            dataMsgPtr.energy    = (float)(
+                // "today" energy
+                dataMsgPtr.energy    = (float)(
                         ((int)(outData[23]) << 8  & 0x0000ff00) |
                         ((int)(outData[24]) << 0  & 0x000000ff)) * 10.0f;
 
-            if (m_stdout)
-                std::cout << dataMsgPtr.timeStamp.date().toString("yyyy/MM/dd").toStdString() << ","
-                      << dataMsgPtr.timeStamp.time().toString("HH:mm:ss").toStdString() << ","
-                      << dataMsgPtr.temperature << ","
-                      << dataMsgPtr.panel1V << ","
-                      << dataMsgPtr.panel1I << ","
-                      << dataMsgPtr.panel1P << ","
-                      << dataMsgPtr.gridV << ","
-                      << dataMsgPtr.gridI << ","
-                      << dataMsgPtr.gridP << ","
-                      << dataMsgPtr.energy << std::endl;
+                if (m_stdout)
+                    std::cout << dataMsgPtr.timeStamp.date().toString("yyyy/MM/dd").toStdString() << ","
+                        << dataMsgPtr.timeStamp.time().toString("HH:mm:ss").toStdString() << ","
+                        << dataMsgPtr.temperature << ","
+                        << dataMsgPtr.panel1V << ","
+                        << dataMsgPtr.panel1I << ","
+                        << dataMsgPtr.panel1P << ","
+                        << dataMsgPtr.gridV << ","
+                        << dataMsgPtr.gridI << ","
+                        << dataMsgPtr.gridP << ","
+                        << dataMsgPtr.energy << std::endl;
 
-            // check inverter operation mode
-            if (data[22] == 5 && dataMsgPtr.panel1V == 0)
-                // we're not outputing any values
-                // so we need to reset any running averages
-                emit newDay();
-            else
-            {
+            
                 emit newData(dataMsgPtr);
             }
+            else
+                emit newDay();
         }
     }
 }

@@ -94,8 +94,6 @@ void Stats::flush()
                     else
                     {
                         iter = m_queue.erase(iter);
-                        std::cout << iter->toStdString().c_str() << std::endl;
-                        std::cout << curl_easy_strerror(res) << std::endl;
                     }
                 }
             }
@@ -110,16 +108,11 @@ void Stats::flush()
 }
 void Stats::doNewData(Inverter::dataMsg data)
 {
-    // smooth out our instantaneous values
-    if (data.energy > 0.0f && data.energy < 40000.0f)
-        m_energy = m_energy * ALPHA + data.energy  * BETA;
-    if (data.panel1V > 0.0f && data.panel1V < 500.0f)
-        m_arrayV = m_arrayV * ALPHA + data.panel1V * BETA;
-    if (data.gridP > 0.0f && data.gridP < 4000.0f)
-        m_gridP  = m_gridP  * ALPHA + data.gridP   * BETA;
 
-    if (data.temperature > 0.0f && data.temperature < 200.0f)
-        m_temperature  = m_temperature  * ALPHA + data.temperature   * BETA;
+    m_energy = m_energy * ALPHA + data.energy  * BETA;
+    m_arrayV = m_arrayV * ALPHA + data.panel1V * BETA;
+    m_gridP  = m_gridP  * ALPHA + data.gridP   * BETA;
+    m_temperature  = m_temperature  * ALPHA + data.temperature   * BETA;
 
     // check to see if we need to upload to pvoutput
     if (!m_intervalSet)
@@ -160,8 +153,6 @@ void Stats::doNewData(Inverter::dataMsg data)
 }
 void Stats::doNewDay()
 {
-    std::cout << "New Day" << std::endl;
-
     m_energy = 0.0f;
     m_arrayV = 0.0f;
     m_gridP  = 0.0f;

@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
 
     qRegisterMetaType<Inverter::dataMsg>();
 
-    QSettings settings("config.ini", QSettings::IniFormat);
+    QSettings settings(argv[1], QSettings::IniFormat);
 
     QString id   = settings.value("System Id").toString();
     QString key  = settings.value("API Key")  .toString();
